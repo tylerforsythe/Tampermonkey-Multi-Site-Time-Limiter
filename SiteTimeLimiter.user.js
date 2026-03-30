@@ -97,13 +97,6 @@
         return resetTime.toISOString().split('T')[0];
     }
 
-    function getYesterdayKey() {
-        const todayKey = getTodayKey();
-        const yesterday = new Date(todayKey);
-        yesterday.setDate(yesterday.getDate() - 1);
-        return yesterday.toISOString().split('T')[0];
-    }
-
     function getAllSiteData() {
         return GM_getValue('site_time_data', {});
     }
@@ -130,19 +123,6 @@
         return siteData.seconds || 0;
     }
 
-    function getSecondsYesterday() {
-        const yesterdayKey = getYesterdayKey();
-        const siteData = getSiteData(currentDomain);
-
-        if (siteData.date === yesterdayKey) {
-            return siteData.seconds || 0;
-        }
-
-        const allData = getAllSiteData();
-        const yesterdayData = allData[`${currentDomain}_${yesterdayKey}`];
-        return yesterdayData?.seconds || 0;
-    }
-
     function saveSecondsToday(seconds) {
         const todayKey = getTodayKey();
         const siteData = getSiteData(currentDomain);
@@ -160,14 +140,6 @@
             date: todayKey,
             seconds: seconds
         });
-    }
-
-    function hasSeenYesterdayStats() {
-        return GM_getValue(`yesterday_seen_${currentDomain}_${getTodayKey()}`, false);
-    }
-
-    function markYesterdayStatsSeen() {
-        GM_setValue(`yesterday_seen_${currentDomain}_${getTodayKey()}`, true);
     }
 
     function formatTime(seconds) {
@@ -188,33 +160,6 @@
         const div = document.createElement('div');
         div.id = 'yt-time-limiter';
         div.style.cssText = 'position:fixed;bottom:20px;left:20px;background:#d32f2f;color:#fff;padding:10px 16px;border-radius:6px;font-family:monospace;font-size:16px;font-weight:bold;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:background-color 2s ease-in-out;';
-        document.body.appendChild(div);
-        return div;
-    }
-
-    function createYesterdayDisplay() {
-        const yesterdaySeconds = getSecondsYesterday();
-        if (yesterdaySeconds === 0 || hasSeenYesterdayStats()) {
-            return null;
-        }
-
-        const div = document.createElement('div');
-        div.id = 'yesterday-stats';
-        div.style.cssText = 'position:fixed;bottom:70px;left:20px;background:#1976d2;color:#fff;padding:10px 16px;border-radius:6px;font-family:monospace;font-size:14px;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;gap:10px;';
-
-        const text = document.createElement('span');
-        text.textContent = `Yesterday: ${formatTime(yesterdaySeconds)}`;
-
-        const closeBtn = document.createElement('button');
-        closeBtn.textContent = '✕';
-        closeBtn.style.cssText = 'background:none;border:none;color:#fff;font-size:16px;cursor:pointer;padding:0;margin:0;line-height:1;';
-        closeBtn.onclick = () => {
-            div.remove();
-            markYesterdayStatsSeen();
-        };
-
-        div.appendChild(text);
-        div.appendChild(closeBtn);
         document.body.appendChild(div);
         return div;
     }
@@ -248,7 +193,6 @@
     let flashIntervalId = null;
     let currentSeconds = getSecondsToday();
     let timerDisplay = null;
-    let yesterdayDisplay = null;
     let isFlashing = false;
 
     function updateDisplay() {
@@ -316,7 +260,6 @@
     function init() {
         if (document.body) {
             timerDisplay = createTimerDisplay();
-            yesterdayDisplay = createYesterdayDisplay();
             updateDisplay();
 
             if (currentSeconds >= DAILY_LIMIT_SECONDS && !config.blockOnExpire) {
