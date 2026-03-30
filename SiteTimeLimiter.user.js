@@ -8,10 +8,13 @@
 // @match        *://*.amazon.com/*
 // @exclude      *://*.console.aws.amazon.com/*
 // @exclude      *://lightsail.aws.amazon.com/*
+// @exclude      *://docs.aws.amazon.com/*
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @run-at       document-start
 // ==/UserScript==
+
+// LLM INSTRUCTIONS: After any edits to this file, run `node --check SiteTimeLimiter.user.js` from the repo root to validate syntax.
 
 (function() {
     'use strict';
