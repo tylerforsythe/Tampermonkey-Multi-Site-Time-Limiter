@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Multi-Site Time Limiter
 // @namespace    http://tampermonkey.net/
-// @version      2.2.
+// @version      2.3.
 // @description  Limits daily usage time across multiple sites with weekend/weekday settings and countdown timer. Has ability to disable during a date range.
 // @match        *://*.youtube.com/*
 // @match        *://*.reddit.com/*
@@ -24,6 +24,7 @@
 
     const RESET_HOUR = 4;
     const SAVE_INTERVAL = 10000;
+    const FLASH_STOP_OVERTIME_SECONDS = 60;
 
     const SITE_CONFIG = {
         'youtube.com': {
@@ -51,7 +52,7 @@
     function isWeekend() {
         const mt = getMountainTimeDate();
         const dayOfWeek = mt.getDay();
-        return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Sunday, 6 = Saturday
+        return dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0; // 5 = Friday, 6 = Saturday, 0 = Sunday
     }
 
     function getCurrentDomain() {
@@ -221,6 +222,20 @@
         }, 2000);
     }
 
+    function stopFlashing() {
+        if (flashIntervalId) {
+            clearInterval(flashIntervalId);
+            flashIntervalId = null;
+        }
+
+        isFlashing = false;
+
+        if (timerDisplay) {
+            timerDisplay.style.backgroundColor = '#d32f2f';
+            timerDisplay.style.color = '#ffffff';
+        }
+    }
+
     function startTimer() {
         if (intervalId) return;
 
@@ -233,7 +248,12 @@
                     saveSecondsToday(currentSeconds);
                     blockPage();
                 } else {
-                    startFlashing();
+                    const overtimeSeconds = currentSeconds - DAILY_LIMIT_SECONDS;
+                    if (overtimeSeconds <= FLASH_STOP_OVERTIME_SECONDS) {
+                        startFlashing();
+                    } else {
+                        stopFlashing();
+                    }
                 }
             }
         }, 1000);
@@ -259,8 +279,7 @@
             displayIntervalId = null;
         }
         if (flashIntervalId) {
-            clearInterval(flashIntervalId);
-            flashIntervalId = null;
+            stopFlashing();
         }
         saveSecondsToday(currentSeconds);
     }
@@ -271,7 +290,10 @@
             updateDisplay();
 
             if (currentSeconds >= DAILY_LIMIT_SECONDS && !config.blockOnExpire) {
-                startFlashing();
+                const overtimeSeconds = currentSeconds - DAILY_LIMIT_SECONDS;
+                if (overtimeSeconds <= FLASH_STOP_OVERTIME_SECONDS) {
+                    startFlashing();
+                }
             }
         } else {
             setTimeout(init, 100);
