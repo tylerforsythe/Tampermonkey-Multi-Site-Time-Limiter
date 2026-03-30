@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Multi-Site Time Limiter
 // @namespace    http://tampermonkey.net/
-// @version      2.0
-// @description  Limits daily usage time across multiple sites with visual countdown timer
+// @version      2.1
+// @description  Limits daily usage time across multiple sites with weekend/weekday settings and countdown timer
 // @match        *://*.youtube.com/*
 // @match        *://*.reddit.com/*
 // @match        *://*.amazon.com/*
@@ -21,18 +21,27 @@
 
     const SITE_CONFIG = {
         'youtube.com': {
-            limitMinutes: 35,
+            limitMinutesWeekday: 35,
+            limitMinutesWeekend: 60,
             blockOnExpire: true
         },
         'reddit.com': {
-            limitMinutes: 15,
+            limitMinutesWeekday: 15,
+            limitMinutesWeekend: 30,
             blockOnExpire: true
         },
         'amazon.com': {
-            limitMinutes: 15,
+            limitMinutesWeekday: 15,
+            limitMinutesWeekend: 30,
             blockOnExpire: false
         }
     };
+
+    function isWeekend() {
+        const mt = getMountainTimeDate();
+        const dayOfWeek = mt.getDay();
+        return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Sunday, 6 = Saturday
+    }
 
     function getCurrentDomain() {
         const hostname = window.location.hostname;
@@ -48,7 +57,7 @@
     if (!currentDomain) return;
 
     const config = SITE_CONFIG[currentDomain];
-    const DAILY_LIMIT_SECONDS = config.limitMinutes * 60;
+    const DAILY_LIMIT_SECONDS = (isWeekend() ? config.limitMinutesWeekend : config.limitMinutesWeekday) * 60;
 
     function getMountainTimeDate() {
         return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Denver' }));
