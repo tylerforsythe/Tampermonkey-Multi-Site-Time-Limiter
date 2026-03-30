@@ -28,7 +28,7 @@
     const SITE_CONFIG = {
         'youtube.com': {
             limitMinutesWeekday: 35,
-            limitMinutesWeekend: 60,
+            limitMinutesWeekend: 90,
             blockOnExpire: true
         },
         'reddit.com': {
@@ -40,6 +40,11 @@
             limitMinutesWeekday: 15,
             limitMinutesWeekend: 30,
             blockOnExpire: false
+        },
+        'arstechnica.com': {
+            limitMinutesWeekday: 10,
+            limitMinutesWeekend: 15,
+            blockOnExpire: true
         }
     };
 
