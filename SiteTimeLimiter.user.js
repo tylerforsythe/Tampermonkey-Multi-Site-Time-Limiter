@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Multi-Site Time Limiter
 // @namespace    http://tampermonkey.net/
-// @version      2.1
-// @description  Limits daily usage time across multiple sites with weekend/weekday settings and countdown timer
+// @version      2.2.
+// @description  Limits daily usage time across multiple sites with weekend/weekday settings and countdown timer. Has ability to disable during a date range.
 // @match        *://*.youtube.com/*
 // @match        *://*.reddit.com/*
 // @match        *://*.amazon.com/*
@@ -15,6 +15,9 @@
 
 (function() {
     'use strict';
+
+    const DISABLE_START_DATE = '';
+    const DISABLE_END_DATE = '';
 
     const RESET_HOUR = 4;
     const SAVE_INTERVAL = 10000;
@@ -52,6 +55,25 @@
         }
         return null;
     }
+
+    function isScriptDisabled() {
+        if (!DISABLE_START_DATE || !DISABLE_END_DATE) {
+            return false;
+        }
+
+        const now = new Date();
+        const start = new Date(DISABLE_START_DATE);
+        const end = new Date(DISABLE_END_DATE);
+
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+            return false;
+        }
+
+        end.setHours(23, 59, 59, 999);
+        return now >= start && now <= end;
+    }
+
+    if (isScriptDisabled()) return;
 
     const currentDomain = getCurrentDomain();
     if (!currentDomain) return;
