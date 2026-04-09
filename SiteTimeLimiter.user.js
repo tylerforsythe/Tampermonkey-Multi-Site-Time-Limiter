@@ -1,11 +1,13 @@
 // ==UserScript==
 // @name         Multi-Site Time Limiter
 // @namespace    http://tampermonkey.net/
-// @version      2.4
+// @version      2.4.1
 // @description  Limits daily usage time across multiple sites with weekend/weekday settings and countdown timer. Has ability to disable during a date range.
 // @match        *://*.youtube.com/*
 // @match        *://*.reddit.com/*
 // @match        *://*.amazon.com/*
+// @match        *://arstechnica.com/*
+// @match        *://*.arstechnica.com/*
 // @exclude      *://*.console.aws.amazon.com/*
 // @exclude      *://lightsail.aws.amazon.com/*
 // @exclude      *://docs.aws.amazon.com/*
@@ -14,7 +16,10 @@
 // @run-at       document-start
 // ==/UserScript==
 
-// LLM INSTRUCTIONS: After any edits to this file, run `node --check SiteTimeLimiter.user.js` from the repo root to validate syntax.
+// LLM INSTRUCTIONS:
+// - After any edits to this file, run `node --check SiteTimeLimiter.user.js` from the repo root to validate syntax.
+// - The @version should be incremented with changes, and the version number may _not_ end in a period ('.').
+// - Sites appearing in SITE_CONFIG need to be in the @match list above as well.
 
 (function() {
     'use strict';
@@ -26,6 +31,7 @@
     const SAVE_INTERVAL = 10000;
     const FLASH_STOP_OVERTIME_SECONDS = 60;
 
+    // Sites appearing in here need to be in the @match list above
     const SITE_CONFIG = {
         'youtube.com': {
             limitMinutesWeekday: 35,
