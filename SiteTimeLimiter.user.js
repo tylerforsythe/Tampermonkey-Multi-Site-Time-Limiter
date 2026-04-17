@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Multi-Site Time Limiter
 // @namespace    http://tampermonkey.net/
-// @version      2.4.1
+// @version      2.4.2
 // @description  Limits daily usage time across multiple sites with weekend/weekday settings and countdown timer. Has ability to disable during a date range.
 // @match        *://*.youtube.com/*
 // @match        *://*.reddit.com/*
@@ -9,6 +9,7 @@
 // @match        *://arstechnica.com/*
 // @match        *://*.arstechnica.com/*
 // @exclude      *://*.console.aws.amazon.com/*
+// @exclude      *://*aws.amazon.com/*
 // @exclude      *://lightsail.aws.amazon.com/*
 // @exclude      *://docs.aws.amazon.com/*
 // @grant        GM_setValue
