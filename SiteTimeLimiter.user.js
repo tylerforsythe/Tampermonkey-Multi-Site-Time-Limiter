@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Multi-Site Time Limiter
 // @namespace    http://tampermonkey.net/
-// @version      2.4.2
+// @version      2.4.4
 // @description  Limits daily usage time across multiple sites with weekend/weekday settings and countdown timer. Has ability to disable during a date range.
 // @match        *://*.youtube.com/*
 // @match        *://*.reddit.com/*
@@ -12,6 +12,7 @@
 // @exclude      *://*aws.amazon.com/*
 // @exclude      *://lightsail.aws.amazon.com/*
 // @exclude      *://docs.aws.amazon.com/*
+// @exclude      *://*.aws.amazon.com/*
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @run-at       document-start
@@ -184,22 +185,73 @@
         const seconds = getSecondsToday();
         const minutes = Math.floor(seconds / 60);
 
-        document.documentElement.innerHTML = `
-            <html>
-            <head><title>Site Blocked</title></head>
-            <body style="margin:0;padding:0;display:flex;justify-content:center;align-items:center;height:100vh;background:#0f0f0f;color:#fff;font-family:sans-serif;">
-                <div style="text-align:center;">
-                    <h1 style="font-size:48px;margin-bottom:20px;">Daily Limit Reached</h1>
-                    <p style="font-size:24px;">You've used ${minutes} minutes today.</p>
-                    <p style="font-size:18px;color:#aaa;">Resets at 4:00 AM Mountain Time</p>
-                </div>
-            </body>
-            </html>
-        `;
+        try {
+            if (!document.documentElement) {
+                return false;
+            }
+
+            let title = document.querySelector('title');
+            if (!title) {
+                title = document.createElement('title');
+                (document.head || document.documentElement).appendChild(title);
+            }
+            title.textContent = 'Site Blocked';
+
+            if (!document.body) {
+                const body = document.createElement('body');
+                document.documentElement.appendChild(body);
+            }
+
+            const body = document.body;
+            body.replaceChildren();
+            body.style.margin = '0';
+            body.style.padding = '0';
+            body.style.display = 'flex';
+            body.style.justifyContent = 'center';
+            body.style.alignItems = 'center';
+            body.style.height = '100vh';
+            body.style.background = '#0f0f0f';
+            body.style.color = '#fff';
+            body.style.fontFamily = 'sans-serif';
+
+            const wrapper = document.createElement('div');
+            wrapper.style.textAlign = 'center';
+
+            const heading = document.createElement('h1');
+            heading.textContent = 'Daily Limit Reached';
+            heading.style.fontSize = '48px';
+            heading.style.marginBottom = '20px';
+
+            const minutesText = document.createElement('p');
+            minutesText.textContent = `You've used ${minutes} minutes today.`;
+            minutesText.style.fontSize = '24px';
+
+            const resetText = document.createElement('p');
+            resetText.textContent = 'Resets at 4:00 AM Mountain Time';
+            resetText.style.fontSize = '18px';
+            resetText.style.color = '#aaa';
+
+            wrapper.appendChild(heading);
+            wrapper.appendChild(minutesText);
+            wrapper.appendChild(resetText);
+            body.appendChild(wrapper);
+
+            return true;
+        } catch (error) {
+            console.error('[SiteTimeLimiter] Failed to block page:', error);
+            return false;
+        }
     }
 
     if (getSecondsToday() >= DAILY_LIMIT_SECONDS && config.blockOnExpire) {
-        blockPage();
+        const blocked = blockPage();
+        if (!blocked) {
+            const retryBlock = setInterval(() => {
+                if (blockPage()) {
+                    clearInterval(retryBlock);
+                }
+            }, 500);
+        }
         return;
     }
 
@@ -251,9 +303,10 @@
 
             if (currentSeconds >= DAILY_LIMIT_SECONDS) {
                 if (config.blockOnExpire) {
-                    stopTimer();
                     saveSecondsToday(currentSeconds);
-                    blockPage();
+                    if (blockPage()) {
+                        stopTimer();
+                    }
                 } else {
                     const overtimeSeconds = currentSeconds - DAILY_LIMIT_SECONDS;
                     if (overtimeSeconds <= FLASH_STOP_OVERTIME_SECONDS) {
