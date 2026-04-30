@@ -29,7 +29,7 @@ Current configured sites include:
 
 1. Install the **Tampermonkey** extension in your browser.
 2. Install from this repo for easier auto-updates:
-   - Open the raw `SiteTimeLimiter.user.js` file URL from this repository in your browser (for example, the GitHub `raw.githubusercontent.com` URL).
+   - Open the raw `SiteTimeLimiter.user.js` file URL from this repository in your browser ([https://github.com/tylerforsythe/Tampermonkey-Multi-Site-Time-Limiter/raw/refs/heads/main/SiteTimeLimiter.user.js](https://github.com/tylerforsythe/Tampermonkey-Multi-Site-Time-Limiter/raw/refs/heads/main/SiteTimeLimiter.user.js))
    - Tampermonkey should prompt you to install the script.
    - After installing this way, Tampermonkey can check that source URL for updates automatically.
 3. (Alternative) Create a new userscript in Tampermonkey and paste in the contents of `SiteTimeLimiter.user.js` manually.
