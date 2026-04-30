@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Multi-Site Time Limiter
 // @namespace    http://tampermonkey.net/
-// @version      2.4.4
+// @version      2.4.5
 // @description  Limits daily usage time across multiple sites with weekend/weekday settings and countdown timer. Has ability to disable during a date range.
 // @match        *://*.youtube.com/*
 // @match        *://*.reddit.com/*
@@ -32,6 +32,7 @@
     const RESET_HOUR = 4;
     const SAVE_INTERVAL = 10000;
     const FLASH_STOP_OVERTIME_SECONDS = 60;
+    const BLOCK_OVERLAY_ID = 'site-time-limiter-block-overlay';
 
     // Sites appearing in here need to be in the @match list above
     const SITE_CONFIG = {
@@ -197,44 +198,56 @@
             }
             title.textContent = 'Site Blocked';
 
-            if (!document.body) {
-                const body = document.createElement('body');
-                document.documentElement.appendChild(body);
+            document.documentElement.style.overflow = 'hidden';
+            if (document.body) {
+                document.body.style.overflow = 'hidden';
             }
 
-            const body = document.body;
-            body.replaceChildren();
-            body.style.margin = '0';
-            body.style.padding = '0';
-            body.style.display = 'flex';
-            body.style.justifyContent = 'center';
-            body.style.alignItems = 'center';
-            body.style.height = '100vh';
-            body.style.background = '#0f0f0f';
-            body.style.color = '#fff';
-            body.style.fontFamily = 'sans-serif';
+            let overlay = document.getElementById(BLOCK_OVERLAY_ID);
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = BLOCK_OVERLAY_ID;
+                overlay.style.position = 'fixed';
+                overlay.style.inset = '0';
+                overlay.style.display = 'flex';
+                overlay.style.justifyContent = 'center';
+                overlay.style.alignItems = 'center';
+                overlay.style.background = '#0f0f0f';
+                overlay.style.color = '#fff';
+                overlay.style.fontFamily = 'sans-serif';
+                overlay.style.zIndex = '2147483647';
 
-            const wrapper = document.createElement('div');
-            wrapper.style.textAlign = 'center';
+                const wrapper = document.createElement('div');
+                wrapper.style.textAlign = 'center';
 
-            const heading = document.createElement('h1');
-            heading.textContent = 'Daily Limit Reached';
-            heading.style.fontSize = '48px';
-            heading.style.marginBottom = '20px';
+                const heading = document.createElement('h1');
+                heading.textContent = 'Daily Limit Reached';
+                heading.style.fontSize = '48px';
+                heading.style.marginBottom = '20px';
 
-            const minutesText = document.createElement('p');
-            minutesText.textContent = `You've used ${minutes} minutes today.`;
-            minutesText.style.fontSize = '24px';
+                const minutesText = document.createElement('p');
+                minutesText.id = `${BLOCK_OVERLAY_ID}-minutes`;
+                minutesText.style.fontSize = '24px';
 
-            const resetText = document.createElement('p');
-            resetText.textContent = 'Resets at 4:00 AM Mountain Time';
-            resetText.style.fontSize = '18px';
-            resetText.style.color = '#aaa';
+                const resetText = document.createElement('p');
+                resetText.textContent = 'Resets at 4:00 AM Mountain Time';
+                resetText.style.fontSize = '18px';
+                resetText.style.color = '#aaa';
 
-            wrapper.appendChild(heading);
-            wrapper.appendChild(minutesText);
-            wrapper.appendChild(resetText);
-            body.appendChild(wrapper);
+                wrapper.appendChild(heading);
+                wrapper.appendChild(minutesText);
+                wrapper.appendChild(resetText);
+                overlay.appendChild(wrapper);
+            }
+
+            const minutesText = overlay.querySelector(`#${BLOCK_OVERLAY_ID}-minutes`);
+            if (minutesText) {
+                minutesText.textContent = `You've used ${minutes} minutes today.`;
+            }
+
+            if (!overlay.parentNode) {
+                document.documentElement.appendChild(overlay);
+            }
 
             return true;
         } catch (error) {
@@ -243,15 +256,30 @@
         }
     }
 
+    let blockEnforceIntervalId = null;
+
+    function startBlockEnforcement() {
+        if (blockEnforceIntervalId) return;
+
+        const enforce = () => {
+            if (getSecondsToday() < DAILY_LIMIT_SECONDS) {
+                clearInterval(blockEnforceIntervalId);
+                blockEnforceIntervalId = null;
+                window.location.reload();
+                return;
+            }
+
+            if (blockPage()) {
+                stopTimer();
+            }
+        };
+
+        enforce();
+        blockEnforceIntervalId = setInterval(enforce, 1000);
+    }
+
     if (getSecondsToday() >= DAILY_LIMIT_SECONDS && config.blockOnExpire) {
-        const blocked = blockPage();
-        if (!blocked) {
-            const retryBlock = setInterval(() => {
-                if (blockPage()) {
-                    clearInterval(retryBlock);
-                }
-            }, 500);
-        }
+        startBlockEnforcement();
         return;
     }
 
@@ -304,9 +332,7 @@
             if (currentSeconds >= DAILY_LIMIT_SECONDS) {
                 if (config.blockOnExpire) {
                     saveSecondsToday(currentSeconds);
-                    if (blockPage()) {
-                        stopTimer();
-                    }
+                    startBlockEnforcement();
                 } else {
                     const overtimeSeconds = currentSeconds - DAILY_LIMIT_SECONDS;
                     if (overtimeSeconds <= FLASH_STOP_OVERTIME_SECONDS) {
